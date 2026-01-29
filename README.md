@@ -77,16 +77,7 @@ BM25 스코어 + FAISS 유사도 점수를 결합하여 특정 임계치(Thresho
 # 추론    
 ### LLM 파인튜닝     
 1. 모델 및 토크나이저 설정      
-```   
-model_name = 'LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct'     
-model = AutoModelForCausalLM.from_pretrained(    
-      model_name,    
-      device_map={"":0},    
-      trust_remote_code=True,    
-      )     
- 
-tokenizer = AutoTokenizer.from_pretrained(model_name)     
-```    
+* model = 'LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct'     
 
 2. LoRA 경량화
    
@@ -111,23 +102,9 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 ### 추론     
 1. 하이브리드 검색기     
-``` 
-def hybrid_search(question: str, top_k: int, bm25_weight: int, faiss_weight: int):
-  # bm25 점수
-  tokenized_question = question.split()
-  bm25_scores = bm25_okapi.get_scores(tokenized_question)
-  bm25_scores_norm = bm25_scores / (np.max(bm25_scores) + 1e-8)
-
-  # faiss 점수
-  ques_embedding = faiss_embeddings.embed_query(question)
-  D, I = faiss_vectordb.index.search(np.array([ques_embedding]), len(all_chunks))
-  faiss_scores = np.zeros(len(all_chunks))
-  faiss_scores[I[0]] = (np.max(D[0]) - D[0]) / (np.max(D[0]) - np.min(D[0]) + 1e-8)
-
-  # 가중합
-  combined_scores = bm25_weight * bm25_scores_norm + faiss_weight * faiss_scores
-
-  # Top-K 문서 선택
+* BM25/FAISS 임베딩
+* Top-K 문서 선택
+```
   top_indices = np.argsort(combined_scores)[::-1][:top_k]
   top_docs = [all_chunks[i] for i in top_indices]
 
@@ -163,14 +140,8 @@ def make_prompt_auto(text: str, top_docs: str) -> str:
 ```
 
 2. 대책 생성 함수 (generate_prevention_plan)
+* 객관식 / 주관식에 따른 답변 생성
 ```
-   def inference(question, fine_model, tokenizer, faiss_vectordb, bm25_okapi,
-              top_k: int, bm25_weight: int, faiss_weight: int):
-
-  top_docs = hybrid_search(question, top_k, bm25_weight, faiss_weight)
-  prompt = make_prompt_auto(question, top_docs)
-  inputs = tokenizer(prompt, return_tensors = 'pt').to('cuda')
-
   # 객관식
   if is_multiple_choice(question):
     output_ids = fine_model.generate(
@@ -194,14 +165,6 @@ def make_prompt_auto(text: str, top_docs: str) -> str:
 ```
 
 3. 추론
-```
-preds = []
-
-for q in tqdm.tqdm(test['Question'], desc='Inference'):
-  answer = inference(q, fine_model, tokenizer, faiss_vectordb, bm25_okapi,
-              top_k=7, bm25_weight=0.1, faiss_weight=0.9)
-  preds.append(answer)
-```
 
 ### 설명   
 > text: 금융 관련 질문, top_docs: 하이브리드 검색을 통해 검색된 관련 문서
