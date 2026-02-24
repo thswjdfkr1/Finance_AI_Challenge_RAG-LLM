@@ -7,6 +7,7 @@
 # 사용 기술
 - Python
 - HuggingFace Transformers
+- Langchain
 - Open LLM(LGAI-EXAONE, SKT-A.X)
 - Fine-Tunning
 - PEFT
