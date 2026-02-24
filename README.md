@@ -6,9 +6,8 @@
 
 # 사용 기술
 - Python
-- HuggingFace
+- HuggingFace Transformers
 - Open LLM(LGAI-EXAONE, SKT-A.X)
-- Transformer
 - Fine-Tunning
 - PEFT
 - LoRA
